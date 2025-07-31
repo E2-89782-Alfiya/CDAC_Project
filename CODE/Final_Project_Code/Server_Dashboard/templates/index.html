@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Sensor Data Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f7fa;
+    }
+
+    header {
+      background-color: #0077b6;
+      color: #caf0f8;
+      padding: 20px;
+      text-align: center;
+    }
+
+    header h1 {
+      color: white;
+      margin: 0;
+    }
+
+    header p {
+      margin: 5px 0 0 0;
+      color: #90e0ef;
+      font-weight: 500;
+    }
+
+    main {
+      display: flex;
+      padding: 20px;
+      gap: 20px;
+    }
+
+    .left-panel {
+      flex: 2;
+      display: flex;
+      flex-direction: column;
+    }
+
+    button {
+      padding: 10px 20px;
+      background-color: #00b4d8;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background-color 0.3s ease;
+      font-size: 1rem;
+      height: 40px;
+      width: fit-content;
+      margin-bottom: 10px;
+      align-self: flex-start;
+    }
+
+    button:hover {
+      background-color: #0096c7;
+    }
+
+    .table-container {
+      overflow-y: auto;
+      overflow-x: hidden;
+      max-height: 400px;
+      width: 100%;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      background: white;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      table-layout: fixed;
+      word-wrap: break-word;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+      white-space: normal;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      background-color: #edf2f4;
+      font-weight: 700;
+      color: #03045e;
+      z-index: 2;
+    }
+
+    td.alert-cell {
+      background-color: #ffd6d6;
+      font-weight: 700;
+      color: #7a0000;
+    }
+
+    .right-panel {
+      flex: 1.5;
+      background-color: #fff;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      height: fit-content;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      overflow-y: auto;
+      max-height: 900px;
+    }
+
+    .chart-container {
+      width: 100%;
+    }
+
+    canvas {
+      max-width: 100%;
+      height: 250px;
+      margin-top: 5px;
+    }
+
+    select {
+      margin-bottom: 10px;
+      padding: 8px 12px;
+      font-size: 1rem;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      width: 100%;
+      max-width: 300px;
+      cursor: pointer;
+    }
+
+    #exportBtn {
+      margin-top: 5px;
+      width: 100%;
+      max-width: 300px;
+      background-color: #06d6a0;
+    }
+
+    #exportBtn:hover {
+      background-color: #049a73;
+    }
+
+    footer {
+      margin-top: 40px;
+      background-color: #0077b6;
+      color: white;
+      text-align: center;
+      padding: 10px;
+      font-size: 14px;
+    }
+
+    footer a {
+      color: white;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>📊 Sensor Data Dashboard</h1>
+    <p>Monitor live environmental conditions</p>
+  </header>
+
+  <main>
+    <div class="left-panel">
+      <button onclick="downloadCSV()">📥 Download CSV</button>
+
+      <div class="table-container">
+        <table id="sensorTable">
+          <thead>
+            <tr>
+              <th style="width:5%;">ID</th>
+              <th style="width:15%;">LDR</th>
+              <th style="width:15%;">MQ5</th>
+              <th style="width:20%;">Temp (°C)</th>
+              <th style="width:20%;">Humidity (%)</th>
+              <th style="width:15%;">Location</th>
+              <th style="width:20%;">Timestamp</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="right-panel">
+      <h2>📊 Sensor Graph</h2>
+      <select id="sensorSelector" onchange="updateChart()">
+        <option value="combined">Combined Graph</option>
+        <option value="ldr">LDR</option>
+        <option value="mq5">MQ5 (Gas)</option>
+        <option value="temperature">Temperature (°C)</option>
+        <option value="humidity">Humidity (%)</option>
+      </select>
+
+      <button id="exportBtn" onclick="exportChartImage()">📤 Export Graph as Image</button>
+
+      <div class="chart-container">
+        <canvas id="combinedChart" style="display:none;"></canvas>
+        <canvas id="individualChart" style="display:none;"></canvas>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    Developed by @Nihal Hasan Jalal &emsp; Contact:
+    <a href="mailto:nihalljalal2020@gmail.com">nihalljalal2020@gmail.com</a>
+  </footer>
+
+  <script>
+    let allSensorData = [];
+
+    let combinedChart;
+    let individualChart;
+
+    const sensorConfigs = {
+      ldr: {
+        label: 'LDR',
+        borderColor: '#0077b6',
+        backgroundColor: 'rgba(0, 119, 182, 0.2)',
+        yAxisTitle: 'LDR',
+      },
+      mq5: {
+        label: 'MQ5 Gas',
+        borderColor: '#d90429',
+        backgroundColor: 'rgba(217, 4, 41, 0.2)',
+        yAxisTitle: 'MQ5 Gas',
+      },
+      temperature: {
+        label: 'Temperature (°C)',
+        borderColor: '#e07a5f',
+        backgroundColor: 'rgba(224, 122, 95, 0.2)',
+        yAxisTitle: 'Temperature (°C)',
+      },
+      humidity: {
+        label: 'Humidity (%)',
+        borderColor: '#1982c4',
+        backgroundColor: 'rgba(25, 130, 196, 0.2)',
+        yAxisTitle: 'Humidity (%)',
+      }
+    };
+
+    async function fetchSensorData() {
+      try {
+        const res = await fetch('/sensor');
+        if (!res.ok) throw new Error('Network response was not ok');
+        const data = await res.json();
+        allSensorData = data;
+
+        renderTable(allSensorData);
+        updateChart();
+
+      } catch (err) {
+        alert("Failed to load data: " + err);
+      }
+    }
+
+    function renderTable(data) {
+      const tableBody = document.querySelector("#sensorTable tbody");
+      tableBody.innerHTML = '';
+
+      const thresholds = {
+        ldr: 2000,
+        mq5: 1500,
+        temperature: 35,
+        humidity: 90
+      };
+
+      data.forEach(row => {
+        const [id, ldr, mq5, temp, humidity, location, timestamp] = row;
+
+        const tr = document.createElement('tr');
+
+        const idTd = document.createElement('td');
+        idTd.textContent = id;
+        tr.appendChild(idTd);
+
+        const ldrTd = document.createElement('td');
+        ldrTd.textContent = ldr;
+        if (ldr > thresholds.ldr) ldrTd.classList.add('alert-cell');
+        tr.appendChild(ldrTd);
+
+        const mq5Td = document.createElement('td');
+        mq5Td.textContent = mq5;
+        if (mq5 > thresholds.mq5) mq5Td.classList.add('alert-cell');
+        tr.appendChild(mq5Td);
+
+        const tempTd = document.createElement('td');
+        tempTd.textContent = temp;
+        if (temp > thresholds.temperature) tempTd.classList.add('alert-cell');
+        tr.appendChild(tempTd);
+
+        const humidityTd = document.createElement('td');
+        humidityTd.textContent = humidity;
+        if (humidity > thresholds.humidity) humidityTd.classList.add('alert-cell');
+        tr.appendChild(humidityTd);
+
+        const locationTd = document.createElement('td');
+        locationTd.textContent = location;
+        tr.appendChild(locationTd);
+
+        const timestampTd = document.createElement('td');
+        timestampTd.textContent = timestamp;
+        tr.appendChild(timestampTd);
+
+        tableBody.appendChild(tr);
+      });
+    }
+
+    function updateChart() {
+      if (!allSensorData.length) return;
+
+      const selected = document.getElementById('sensorSelector').value;
+
+      if (selected === 'combined') {
+        // Show combined chart, hide individual
+        document.getElementById('combinedChart').style.display = 'block';
+        document.getElementById('individualChart').style.display = 'none';
+
+        renderCombinedChart(allSensorData);
+      } else {
+        // Show individual chart, hide combined
+        document.getElementById('combinedChart').style.display = 'none';
+        document.getElementById('individualChart').style.display = 'block';
+
+        renderIndividualChart(selected);
+      }
+    }
+
+    function renderCombinedChart(data) {
+      const timeLabels = data.map(row => row[6]);
+
+      const ldrData = data.map(row => row[1]);
+      const mq5Data = data.map(row => row[2]);
+      const tempData = data.map(row => row[3]);
+      const humidityData = data.map(row => row[4]);
+
+      if (combinedChart) combinedChart.destroy();
+
+      const ctx = document.getElementById('combinedChart').getContext('2d');
+      combinedChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: timeLabels,
+          datasets: [
+            {
+              label: sensorConfigs.ldr.label,
+              data: ldrData,
+              borderColor: sensorConfigs.ldr.borderColor,
+              backgroundColor: sensorConfigs.ldr.backgroundColor,
+              yAxisID: 'y',
+              tension: 0.3,
+              pointRadius: 3,
+            },
+            {
+              label: sensorConfigs.mq5.label,
+              data: mq5Data,
+              borderColor: sensorConfigs.mq5.borderColor,
+              backgroundColor: sensorConfigs.mq5.backgroundColor,
+              yAxisID: 'y1',
+              tension: 0.3,
+              pointRadius: 3,
+            },
+            {
+              label: sensorConfigs.temperature.label,
+              data: tempData,
+              borderColor: sensorConfigs.temperature.borderColor,
+              backgroundColor: sensorConfigs.temperature.backgroundColor,
+              yAxisID: 'y2',
+              tension: 0.3,
+              pointRadius: 3,
+            },
+            {
+              label: sensorConfigs.humidity.label,
+              data: humidityData,
+              borderColor: sensorConfigs.humidity.borderColor,
+              backgroundColor: sensorConfigs.humidity.backgroundColor,
+              yAxisID: 'y3',
+              tension: 0.3,
+              pointRadius: 3,
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          interaction: {
+            mode: 'nearest',
+            intersect: false
+          },
+          plugins: {
+            beforeDraw: (chart) => {
+              const ctx = chart.ctx;
+              ctx.save();
+              ctx.globalCompositeOperation = 'destination-over';
+              ctx.fillStyle = 'white';  // Set white background for export
+              ctx.fillRect(0, 0, chart.width, chart.height);
+              ctx.restore();
+            },
+            legend: { position: 'top' },
+            tooltip: { enabled: true, mode: 'nearest', intersect: false }
+          },
+          scales: {
+            x: {
+              title: { display: true, text: 'Timestamp' },
+              ticks: {
+                maxRotation: 45,
+                minRotation: 45,
+                autoSkip: true,
+                maxTicksLimit: 15
+              }
+            },
+            y: {
+              type: 'linear',
+              display: true,
+              position: 'left',
+              title: { display: true, text: sensorConfigs.ldr.yAxisTitle },
+              beginAtZero: true,
+            },
+            y1: {
+              type: 'linear',
+              display: true,
+              position: 'right',
+              title: { display: true, text: sensorConfigs.mq5.yAxisTitle },
+              grid: { drawOnChartArea: false },
+              beginAtZero: true,
+            },
+            y2: {
+              type: 'linear',
+              display: true,
+              position: 'left',
+              offset: true,
+              title: { display: true, text: sensorConfigs.temperature.yAxisTitle },
+              grid: { drawOnChartArea: false },
+              beginAtZero: false,
+              suggestedMin: 0
+            },
+            y3: {
+              type: 'linear',
+              display: true,
+              position: 'right',
+              offset: true,
+              title: { display: true, text: sensorConfigs.humidity.yAxisTitle },
+              grid: { drawOnChartArea: false },
+              beginAtZero: true,
+              suggestedMax: 100
+            }
+          }
+        }
+      });
+    }
+
+    function renderIndividualChart(sensorKey) {
+      const config = sensorConfigs[sensorKey];
+      const timeLabels = allSensorData.map(row => row[6]);
+      const dataIndexMap = {
+        ldr: 1,
+        mq5: 2,
+        temperature: 3,
+        humidity: 4
+      };
+      const sensorData = allSensorData.map(row => row[dataIndexMap[sensorKey]]);
+
+      if (individualChart) individualChart.destroy();
+
+      const ctx = document.getElementById('individualChart').getContext('2d');
+      individualChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: timeLabels,
+          datasets: [{
+            label: config.label,
+            data: sensorData,
+            borderColor: config.borderColor,
+            backgroundColor: config.backgroundColor,
+            borderWidth: 2,
+            tension: 0.3,
+            pointRadius: 3,
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            beforeDraw: (chart) => {
+              const ctx = chart.ctx;
+              ctx.save();
+              ctx.globalCompositeOperation = 'destination-over';
+              ctx.fillStyle = 'white';  // Set white background for export
+              ctx.fillRect(0, 0, chart.width, chart.height);
+              ctx.restore();
+            },
+            legend: { display: true }
+          },
+          scales: {
+            x: {
+              title: { display: true, text: 'Timestamp' },
+              ticks: {
+                maxRotation: 45,
+                minRotation: 45,
+                autoSkip: true,
+                maxTicksLimit: 15
+              }
+            },
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: config.yAxisTitle }
+            }
+          }
+        }
+      });
+    }
+
+    function downloadCSV() {
+      const rows = [];
+
+      const headerRow = Array.from(document.querySelectorAll('#sensorTable thead th'))
+                            .map(th => `"${th.textContent.trim()}"`).join(',');
+      rows.push(headerRow);
+
+      allSensorData.forEach(row => {
+        const csvRow = row.map(cell => `"${cell}"`).join(',');
+        rows.push(csvRow);
+      });
+
+      const csv = rows.join('\n');
+
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'sensor_data.csv';
+      link.click();
+    }
+
+    function exportChartImage() {
+  const combinedCanvas = document.getElementById('combinedChart');
+  const individualCanvas = document.getElementById('individualChart');
+
+  let canvasToExport = null;
+
+  if (combinedCanvas.style.display !== 'none') {
+    canvasToExport = combinedCanvas;
+  } else if (individualCanvas.style.display !== 'none') {
+    canvasToExport = individualCanvas;
+  }
+
+  if (!canvasToExport) {
+    alert('No chart available to export!');
+    return;
+  }
+
+  const ctx = canvasToExport.getContext('2d');
+
+  // Save the current canvas content
+  const imgData = ctx.getImageData(0, 0, canvasToExport.width, canvasToExport.height);
+
+  // Fill with white background
+  ctx.globalCompositeOperation = 'destination-over';
+  ctx.fillStyle = 'white';
+  ctx.fillRect(0, 0, canvasToExport.width, canvasToExport.height);
+
+  // Export the image
+  const imageURL = canvasToExport.toDataURL('image/png');
+
+  // Restore original content
+  ctx.putImageData(imgData, 0, 0);
+
+  // Trigger download
+  const link = document.createElement('a');
+  link.download = 'sensor_chart.png';
+  link.href = imageURL;
+  link.click();
+}
+
+
+    // Initial load + refresh every 30 seconds
+    fetchSensorData();
+    setInterval(fetchSensorData, 1000);
+  </script>
+</body>
+</html>
