@@ -52,8 +52,7 @@ A **Flask REST API** stores all sensor data into a **MySQL** database for histor
 - IoT-based smart infrastructure with real-time alerts  
 
 ## 🗄 Database Schema
-  -table creation in mysql
-
+```sql
 CREATE TABLE SensorData (
     ID INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     LDR_DATA INT,
