@@ -62,3 +62,55 @@ CREATE TABLE SensorData (
     LOCATION VARCHAR(30),
     DATE_TIME TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+## 📂 Project Structure
+```
+CODE/Final_Project_Code/
+│
+├── ESP8266/                 # ESP8266 Wi-Fi module code (UART JSON send to server)
+├── Server_Dashboard/        # Flask REST API + MySQL Database + Web Dashboard
+├── STM32_CAN_Receiver/      # Receiver Node (STM32 + CAN RX + LCD + ESP8266 )
+└── STM32_CAN_Transmitter/   # Transmitter Node (STM32 + Sensors + CAN TX)
+```
+
+## 🚀 How to Run
+
+### 1️⃣ Hardware Setup
+- Connect **LDR, MQ5 and DHT11** sensors to the **STM32_CAN_Transmitter** board.  
+- Connect **CAN bus** between STM32 boards:  
+  - **CANH ↔ CANH**  (use CAN Transreceiver eg. MCP2551)
+  - **CANL ↔ CANL**  (use CAN Transreceiver eg. MCP2551)
+- Attach **16x2 I²C LCD** and **ESP8266** to the **STM32_CAN_Receiver** board.
+
+### 2️⃣ Firmware
+- Flash **STM32_CAN_Transmitter** code to the transmitter board.  
+- Flash **STM32_CAN_Receiver** code to the receiver board.
+- Flash **ESP8266** code to the NODE MCU board.
+- Run **Server_Dashboard** code 
+
+### 3️⃣ Server Setup
+Install dependencies:
+```bash
+pip install flask mysql-connector-python
+```
+Start the Flask server:
+```bash
+python3 server.py
+```
+Ensure MySQL database contains the **SensorData** table as per the schema above.
+
+### 4️⃣ Blynk Setup
+- Create a new project in the **Blynk** app.  
+- Get the **Auth Token** and insert it into your **ESP8266 firmware**.  
+- Configure **virtual pins** for sending alerts when thresholds are exceeded.
+
+### 5️⃣ Testing
+- Check **LCD** for live values.   
+- Query **MySQL database** for stored sensor readings.  
+- Trigger alerts in **Blynk** when thresholds are crossed.
+
+## 🔮 Future Scope
+- Automatic **database cleanup** when table size exceeds limit.  
+- Add **real-time graphs** on the web dashboard.  
+- Enable **remote device control** via the cloud interface.
+
