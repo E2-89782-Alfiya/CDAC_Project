@@ -6,38 +6,42 @@ Two STM32 boards communicate over the **CAN bus**, where the transmitter collect
 The receiver displays the data on an LCD, uploads it to the cloud using an **ESP8266** Wi-Fi module, and sends **real-time alerts via Blynk** if critical thresholds are exceeded.  
 A **Flask REST API** stores all sensor data into a **MySQL** database for historical logging and analysis, while **Blynk** provides instant push notifications to the user’s mobile device.
 
+---
+
 ## 🔧 Key Features
 
-  ### Sensor Integration
-  - **LDR** – Light Intensity measurement  
-  - **MQ5** – Gas detection  
-  - **DHT11** – Temperature & Humidity monitoring  
-  
-  ### CAN Communication
-  - Data exchange between two STM32 boards at **1 Mbps**  
-  - CAN ID filtering for selective message processing  
-  
-  ### Receiver Node Functionality
-  - Decodes CAN messages  
-  - Displays values on a **16x2 I2C LCD**  
-  - Sends data to **ESP8266** over **UART2**  
-  - **Triggers Blynk alerts** when gas concentration, temperature, or light levels cross safety limits
-  
-  ### Cloud Integration
-  - **ESP8266** formats data into JSON  
-  - Sends it to a **Flask server** for storage in **MySQL**  
-  - **Blynk IoT platform** sends mobile notifications in real-time  
-  - Optional: UART debug logging
+### Sensor Integration
+- **LDR** – Light intensity measurement  
+- **MQ5** – Gas detection  
+- **DHT11** – Temperature & Humidity monitoring  
+
+### CAN Communication
+- Data exchange between two STM32 boards at **500 Kbps**  
+- CAN ID filtering for selective message processing  
+
+### Receiver Node Functionality
+- Decodes CAN messages  
+- Displays values on a **16x2 I²C LCD**  
+- Sends data to **ESP8266** over **UART2**  
+- **Triggers Blynk alerts** when gas concentration, temperature, or light levels cross safety limits
+
+### Cloud Integration
+- **ESP8266** formats data into JSON  
+- Sends it to a **Flask server** for storage in **MySQL**  
+- **Blynk IoT platform** sends mobile notifications in real-time  
+
+---
 
 ## 🧠 Technologies Used
 - **Microcontroller:** STM32F407VG-DISC1  
 - **RTOS:** FreeRTOS  
-- **Protocols:** CAN Bus, UART, I2C  
+- **Protocols:** CAN Bus, UART, I²C  
 - **Connectivity:** ESP8266 (AT commands)  
 - **Server:** Flask (Python), Blynk IoT  
 - **Database:** MySQL  
 - **Languages:** C (STM32), Python (Flask), SQL  
 
+---
 
 ## 🎯 Objectives
 - Implement a robust and scalable sensor data network using STM32 and CAN.  
@@ -45,11 +49,15 @@ A **Flask REST API** stores all sensor data into a **MySQL** database for histor
 - Provide **instant safety alerts via Blynk** to mobile devices.  
 - Store sensor readings in MySQL for historical analysis.
 
+---
+
 ## 📈 Applications
 - Industrial and environmental monitoring  
 - Smart agriculture systems  
 - Laboratory automation  
 - IoT-based smart infrastructure with real-time alerts  
+
+---
 
 ## 🗄 Database Schema
 ```sql
@@ -62,6 +70,9 @@ CREATE TABLE SensorData (
     LOCATION VARCHAR(30),
     DATE_TIME TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+```
+
+---
 
 ## 📂 Project Structure
 ```
@@ -69,24 +80,26 @@ CODE/Final_Project_Code/
 │
 ├── ESP8266/                 # ESP8266 Wi-Fi module code (UART JSON send to server)
 ├── Server_Dashboard/        # Flask REST API + MySQL Database + Web Dashboard
-├── STM32_CAN_Receiver/      # Receiver Node (STM32 + CAN RX + LCD + ESP8266 )
+├── STM32_CAN_Receiver/      # Receiver Node (STM32 + CAN RX + LCD + ESP8266)
 └── STM32_CAN_Transmitter/   # Transmitter Node (STM32 + Sensors + CAN TX)
 ```
+
+---
 
 ## 🚀 How to Run
 
 ### 1️⃣ Hardware Setup
-- Connect **LDR, MQ5 and DHT11** sensors to the **STM32_CAN_Transmitter** board.  
-- Connect **CAN bus** between STM32 boards:  
-  - **CANH ↔ CANH**  (use CAN Transreceiver eg. MCP2551)
-  - **CANL ↔ CANL**  (use CAN Transreceiver eg. MCP2551)
+- Connect **LDR, MQ5, and DHT11** sensors to the **STM32_CAN_Transmitter** board.  
+- Connect **CAN bus** between STM32 boards using a CAN transceiver (e.g., MCP2551):  
+  - **CANH ↔ CANH**  
+  - **CANL ↔ CANL**  
 - Attach **16x2 I²C LCD** and **ESP8266** to the **STM32_CAN_Receiver** board.
 
 ### 2️⃣ Firmware
 - Flash **STM32_CAN_Transmitter** code to the transmitter board.  
-- Flash **STM32_CAN_Receiver** code to the receiver board.
-- Flash **ESP8266** code to the NODE MCU board.
-- Run **Server_Dashboard** code 
+- Flash **STM32_CAN_Receiver** code to the receiver board.  
+- Flash **ESP8266** code to the NodeMCU board.  
+- Run **Server_Dashboard** code.
 
 ### 3️⃣ Server Setup
 Install dependencies:
@@ -105,12 +118,13 @@ Ensure MySQL database contains the **SensorData** table as per the schema above.
 - Configure **virtual pins** for sending alerts when thresholds are exceeded.
 
 ### 5️⃣ Testing
-- Check **LCD** for live values.   
+- Check **LCD** for live values.  
 - Query **MySQL database** for stored sensor readings.  
 - Trigger alerts in **Blynk** when thresholds are crossed.
+
+---
 
 ## 🔮 Future Scope
 - Automatic **database cleanup** when table size exceeds limit.  
 - Add **real-time graphs** on the web dashboard.  
 - Enable **remote device control** via the cloud interface.
-
