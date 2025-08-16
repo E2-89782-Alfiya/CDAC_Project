@@ -7,9 +7,9 @@
 #include <ArduinoJson.h>
 #include <BlynkSimpleEsp8266.h>
 
-const char* ssid = "GalaxyM31";
-const char* password = "0987654321";
-const char* serverUrl = "http://192.168.196.109:4000/sensordata";
+const char* ssid = "nihal";
+const char* password = "nihal123";
+const char* serverUrl = "http://192.168.164.59:5000/sensor";
 
 char auth[] = BLYNK_AUTH_TOKEN; 
 
